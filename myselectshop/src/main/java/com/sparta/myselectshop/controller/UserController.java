@@ -1,5 +1,6 @@
 package com.sparta.myselectshop.controller;
 
+import com.sparta.myselectshop.dto.LoginRequestDto;
 import com.sparta.myselectshop.dto.SignupRequestDto;
 import com.sparta.myselectshop.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -31,5 +32,11 @@ public class UserController {
     public String signup(SignupRequestDto signupRequestDto) {
         userService.signup(signupRequestDto);
         return "redirect:/api/user/login";
+    }
+
+    @PostMapping("/login")
+    public String login(LoginRequestDto loginRequestDto) {
+        userService.login(loginRequestDto);
+        return "redirect:/api/shop";
     }
 }
