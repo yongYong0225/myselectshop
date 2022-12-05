@@ -1,6 +1,18 @@
 let targetId;
 
 $(document).ready(function () {
+    // cookie 여부 확인하여 로그인 확인
+    const auth = getToken();
+
+    if(auth !== '') {
+        $('#username').text('수강생');
+        $('#login-true').show();
+        $('#login-false').hide();
+    } else {
+        $('#login-false').show();
+        $('#login-true').hide();
+    }
+
     // id 가 query 인 녀석 위에서 엔터를 누르면 execSearch() 함수를 실행하라는 뜻입니다.
     $('#query').on('keypress', function (e) {
         if (e.key == 'Enter') {
@@ -99,12 +111,18 @@ function addProduct(itemDto) {
      * 1. contentType: "application/json",
      * 2. data: JSON.stringify(itemDto),
      */
+
+    const auth = getToken();
+
     // 1. POST /api/products 에 관심 상품 생성 요청
     $.ajax({
         type: "POST",
         url: '/api/products',
         contentType: "application/json",
         data: JSON.stringify(itemDto),
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader("Authorization", auth);
+        },
         success: function (response) {
             // 2. 응답 함수에서 modal을 뜨게 하고, targetId 를 reponse.id 로 설정
             $('#container').addClass('active');
@@ -119,23 +137,42 @@ function showProduct() {
      * 검색결과 목록: #search-result-box
      * 관심상품 HTML 만드는 함수: addProductItem
      */
+    const auth = getToken();
 
-    // 1. GET /api/products 요청
-    $.ajax({
-        type: 'GET',
-        url: '/api/products',
-        success: function (response) {
-            // 2. 관심상품 목록, 검색결과 목록 비우기
+    var sorting = $("#sorting option:selected").val();
+    var isAsc = $(':radio[name="isAsc"]:checked').val();
+
+    $('#product-container').empty();
+    $('#search-result-box').empty();
+    $('#pagination').pagination({
+        dataSource: `/api/products?sortBy=${sorting}&isAsc=${isAsc}`,
+        locator: 'content',
+        alias: {
+            pageNumber: 'page',
+            pageSize: 'size'
+        },
+        totalNumberLocator: (response) => {
+            return response.totalElements;
+        },
+        pageSize: 10,
+        showPrevious: true,
+        showNext: true,
+        ajax: {
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader("Authorization", auth);
+                $('#product-container').html('상품 불러오는 중...');
+            }
+        },
+        callback: function(data, pagination) {
+            console.log(data);
             $('#product-container').empty();
-            $('#search-result-box').empty();
-            // 3. for 문마다 관심 상품 HTML 만들어서 관심상품 목록에 붙이기!
-            for (let i = 0; i < response.length; i++) {
-                let product = response[i];
+            for (let i = 0; i < data.length; i++) {
+                let product = data[i];
                 let tempHtml = addProductItem(product);
                 $('#product-container').append(tempHtml);
             }
         }
-    })
+    });
 }
 
 function addProductItem(product) {
@@ -178,12 +215,16 @@ function setMyprice() {
         alert('올바른 가격을 입력해주세요');
         return;
     }
+    const auth = getToken();
     // 3. PUT /api/product/${targetId} 에 data를 전달한다.
     $.ajax({
         type: "PUT",
         url: `/api/products/${targetId}`,
         contentType: "application/json",
         data: JSON.stringify({myprice: myprice}),
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader("Authorization", auth);
+        },
         success: function (response) {
             // 4. 모달을 종료한다. $('#container').removeClass('active');
             $('#container').removeClass('active');
@@ -193,4 +234,25 @@ function setMyprice() {
             window.location.reload();
         }
     })
+}
+
+function logout() {
+    // 토큰 값 ''으로 덮어쓰기
+    document.cookie =
+        'Authorization' + '=' + '' + ';path=/';
+    window.location.reload();
+}
+
+function  getToken() {
+    let cName = 'Authorization' + '=';
+    let cookieData = document.cookie;
+    let cookie = cookieData.indexOf('Authorization');
+    let auth = '';
+    if(cookie !== -1){
+        cookie += cName.length;
+        let end = cookieData.indexOf(';', cookie);
+        if(end === -1)end = cookieData.length;
+        auth = cookieData.substring(cookie, end);
+    }
+    return auth;
 }
