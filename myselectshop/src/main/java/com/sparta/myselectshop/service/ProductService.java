@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -175,7 +177,7 @@ public class ProductService {
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new NullPointerException("해당 상품 아이디가 존재하지 않습니다."));
 
-            // 2) 폴더를 조회합니다.
+            // 2) 관심상품을 조회합니다.
             Folder folder = folderRepository.findById(folderId)
                     .orElseThrow(() -> new NullPointerException("해당 폴더 아이디가 존재하지 않습니다."));
 
@@ -183,6 +185,13 @@ public class ProductService {
             Long loginUserId = user.getId();
             if (!product.getUserId().equals(loginUserId) || !folder.getUser().getId().equals(loginUserId)) {
                 throw new IllegalArgumentException("회원님의 관심상품이 아니거나, 회원님의 폴더가 아닙니다~^^");
+            }
+
+            // 중복확인
+            Optional<Product> overlapFolder = productRepository.findByIdAndFolderList_Id(product.getId(), folder.getId());
+
+            if(overlapFolder.isPresent()) {
+                throw new IllegalArgumentException("중복된 폴더입니다.");
             }
 
             // 4) 상품에 폴더를 추가합니다.
@@ -193,4 +202,5 @@ public class ProductService {
             return null;
         }
     }
+
 }
