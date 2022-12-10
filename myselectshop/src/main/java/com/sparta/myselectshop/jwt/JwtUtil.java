@@ -2,12 +2,16 @@ package com.sparta.myselectshop.jwt;
 
 
 import com.sparta.myselectshop.entity.UserRoleEnum;
+import com.sparta.myselectshop.security.UserDetailsServiceImpl;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SecurityException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -21,6 +25,8 @@ import java.util.Date;
 @Component
 @RequiredArgsConstructor
 public class JwtUtil {
+
+    private final UserDetailsServiceImpl userDetailsService;
     // Header Key 값
     public static final String AUTHORIZATION_HEADER = "Authorization";
     // 사용자 권한 값의 key
@@ -37,6 +43,8 @@ public class JwtUtil {
     //토큰을 만들때 넣어줄 키값
     private Key key;
     private final SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
+
+
 
     @PostConstruct
     public void init() {//값을 가져와서 디코딩해주는 과정
@@ -90,6 +98,12 @@ public class JwtUtil {
     public Claims getUserInfoFromToken(String token) {
         //getbody를 통해 정보를 가져옴
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+    }
+
+    // 인증 객체 생성
+    public Authentication createAuthentication(String username) {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
     }
 
 }
